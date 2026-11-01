@@ -25,6 +25,8 @@ b, strong, th, summary { font-weight: bold; }
 i, em { font-style: italic; }
 u, a { text-decoration: underline; }
 s, del { text-decoration: line-through; }
+mark { background-color: #fff173; }
+img { max-width: 100%; height: auto; }
 sub, sup { font-size: .75em; }
 small { font-size: .85em; }
 big { font-size: 1.17em; }

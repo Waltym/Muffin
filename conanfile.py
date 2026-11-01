@@ -16,6 +16,10 @@ class MuffinDependencies(ConanFile):
     }
 
     def configure(self):
+        if self.settings.os == "Linux":
+            # Conan's Qt recipe disables D-Bus by default, which also removes
+            # the IBus input context required by ibus-rime and other IMEs.
+            self.options["qt/*"].with_dbus = True
         if self.settings.os == "Macos":
             # A process-wide ICU_DATA also redirects Apple's system ICU to
             # our incompatible data. Embed Muffin's ICU data instead, so

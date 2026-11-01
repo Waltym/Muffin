@@ -89,7 +89,7 @@ else()
     if(dll_name MATCHES "^Qt6.*\\.(dll|so)$")
       get_filename_component(qt_bin_dir "${dll}" DIRECTORY)
       get_filename_component(qt_root_dir "${qt_bin_dir}" DIRECTORY)
-      foreach(plugin_subdir platforms styles imageformats tls networkinformation)
+      foreach(plugin_subdir platforms styles imageformats tls networkinformation platforminputcontexts)
         if(EXISTS "${qt_root_dir}/plugins/${plugin_subdir}")
           list(APPEND plugin_dirs "${qt_root_dir}/plugins/${plugin_subdir}")
         endif()
@@ -163,7 +163,7 @@ else()
       if(dependency_name MATCHES "^libQt6.*\\.so")
         get_filename_component(qt_lib_dir "${dependency}" DIRECTORY)
         get_filename_component(qt_root_dir "${qt_lib_dir}" DIRECTORY)
-        foreach(plugin_subdir platforms styles imageformats tls networkinformation)
+        foreach(plugin_subdir platforms styles imageformats tls networkinformation platforminputcontexts)
           if(EXISTS "${qt_root_dir}/plugins/${plugin_subdir}")
             list(APPEND plugin_dirs "${qt_root_dir}/plugins/${plugin_subdir}")
           endif()
@@ -260,6 +260,12 @@ else()
       "Configure-time QT_PLUGIN_DIRS: '${QT_PLUGIN_DIRS}'. "
       "Dist entries: ${dist_entries}. "
       "The Qt package layout or the plugin-dir derivation has changed.")
+  endif()
+
+  if(UNIX AND NOT APPLE AND NOT EXISTS "${DIST_DIR}/platforminputcontexts/libibusplatforminputcontextplugin.so")
+    message(FATAL_ERROR
+      "The Linux bundle is missing Qt's IBus input context plugin. "
+      "Build Qt with D-Bus enabled (Conan qt/*:with_dbus=True) to support Chinese input.")
   endif()
 
   file(WRITE "${DIST_DIR}/qt.conf" "[Paths]\nPlugins = .\n")
