@@ -131,7 +131,7 @@ class LauncherTests(unittest.TestCase):
             env.pop(key, None)
         env.update(updates)
         script = package.LAUNCHER.replace(
-            'exec /usr/lib/muffin/Muffin "$@"',
+            'exec /usr/lib/muffin-md/Muffin "$@"',
             'printf "%s|%s" "${QT_IM_MODULE:-}" "${FONTCONFIG_FILE:-}"')
         return subprocess.check_output(['/bin/sh', '-c', script], env=env, text=True)
 
@@ -146,6 +146,14 @@ class LauncherTests(unittest.TestCase):
 
     def test_other_input_methods_are_not_changed(self):
         self.assertEqual(self.launch_environment(XMODIFIERS='@im=fcitx'), '|/etc/fonts/fonts.conf')
+
+
+class PackageIdentityTests(unittest.TestCase):
+    def test_launcher_and_desktop_use_independent_paths(self):
+        self.assertEqual(package.PACKAGE, 'muffin-md')
+        self.assertIn('exec /usr/lib/muffin-md/Muffin "$@"', package.LAUNCHER)
+        self.assertIn('Exec=muffin-md %F\n', package.DESKTOP)
+        self.assertIn('Icon=muffin-md\n', package.DESKTOP)
 
 
 class SourcePackagingTests(unittest.TestCase):

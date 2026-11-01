@@ -16,6 +16,7 @@ import tempfile
 
 REPO = Path(__file__).resolve().parents[1]
 VERSION = "0.7.9-1+ibus4"
+PACKAGE = "muffin-md"
 ORIGINAL_UI_SHA256 = "a1c3fe544698f7a626f90c0eed7b81c34e1e506d1952ce3275e9b940165c3776"
 HIGHLIGHT_DEFAULT_RULE = b"mark { background-color: #fff173; }\n"
 IMAGE_FIT_DEFAULT_RULE = b"img { max-width: 100%; height: auto; }\n"
@@ -38,17 +39,17 @@ fi
 if [ -z "${FONTCONFIG_FILE:-}" ] && [ -r /etc/fonts/fonts.conf ]; then
     export FONTCONFIG_FILE=/etc/fonts/fonts.conf
 fi
-exec /usr/lib/muffin/Muffin "$@"
+exec /usr/lib/muffin-md/Muffin "$@"
 '''
 DESKTOP = '''[Desktop Entry]
 Type=Application
-Name=Muffin
+Name=Muffin Markdown
 GenericName=Markdown Editor
 GenericName[zh_CN]=Markdown 编辑器
 Comment=Native Markdown editor with IBus input support
 Comment[zh_CN]=支持 IBus 中文输入的原生 Markdown 编辑器
-Exec=muffin %F
-Icon=muffin
+Exec=muffin-md %F
+Icon=muffin-md
 Terminal=false
 Categories=Office;TextEditor;
 MimeType=text/markdown;text/x-markdown;
@@ -169,7 +170,7 @@ def main():
     if arch != "amd64":
         raise ValueError("The pinned upstream archive is amd64 only")
     args.output_dir.mkdir(parents=True, exist_ok=True)
-    output = args.output_dir.resolve() / f"muffin_{VERSION}_amd64.deb"
+    output = args.output_dir.resolve() / f"{PACKAGE}_{VERSION}_amd64.deb"
     if output.exists():
         raise FileExistsError(f"Refusing to overwrite {output}")
     env = os.environ.copy()
@@ -178,7 +179,7 @@ def main():
     with tempfile.TemporaryDirectory(prefix="muffin-deb-", dir=args.output_dir) as temporary:
         work = Path(temporary).resolve()
         root = work / "package"
-        app = root / "usr/lib/muffin"
+        app = root / "usr/lib/muffin-md"
         app.mkdir(parents=True)
         with tarfile.open(inputs["muffin"], "r:gz") as archive:
             archive.extractall(app, filter="data")
@@ -195,21 +196,21 @@ def main():
         shutil.copy2(sdk / "plugins/platforminputcontexts" / plugin.name, native)
         relocate_ibus_plugin(native, b"$ORIGIN/../..\0")
         build_position_adapter(args.qt_sdk, app, work / "adapter-build", plugin, env)
-        put(root / "usr/bin/muffin", LAUNCHER, 0o755)
-        put(root / "usr/bin/muffin-mmdc", '#!/bin/sh\nexec /usr/lib/muffin/muffin-mmdc "$@"\n', 0o755)
-        put(root / "usr/share/applications/muffin.desktop", DESKTOP)
+        put(root / "usr/bin/muffin-md", LAUNCHER, 0o755)
+        put(root / "usr/bin/muffin-md-mmdc", '#!/bin/sh\nexec /usr/lib/muffin-md/muffin-mmdc "$@"\n', 0o755)
+        put(root / "usr/share/applications/muffin-md.desktop", DESKTOP)
         for size in (16, 32, 48, 64, 128, 256, 512):
             icon = REPO / f"resources/app-icons/muffin-{size}.png"
             if not icon.exists():
                 icon = REPO / f"resources/app-icons/{size}.png"
             if icon.exists():
-                dest = root / f"usr/share/icons/hicolor/{size}x{size}/apps/muffin.png"
+                dest = root / f"usr/share/icons/hicolor/{size}x{size}/apps/muffin-md.png"
                 dest.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(icon, dest)
-        scalable = root / "usr/share/icons/hicolor/scalable/apps/muffin.svg"
+        scalable = root / "usr/share/icons/hicolor/scalable/apps/muffin-md.svg"
         scalable.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(REPO / "logo.svg", scalable)
-        doc = root / "usr/share/doc/muffin"
+        doc = root / "usr/share/doc/muffin-md"
         doc.mkdir(parents=True)
         shutil.copy2(REPO / "LICENSE", doc / "copyright")
         for license_name in ("LGPL-3", "GPL-3"):
@@ -235,9 +236,10 @@ def main():
 启动器仅在未指定 QT_IM_MODULE 且 XMODIFIERS 指定 ibus 的 X11 会话中
 为本进程设置 QT_IM_MODULE=ibus；为本进程补齐默认 fontconfig 配置路径。
 
-安装/升级：sudo apt install ./muffin_0.7.9-1+ibus4_amd64.deb
-启动：应用菜单中的 Muffin，或 muffin 文件.md
-卸载：sudo apt remove muffin（用户笔记不在本包内）
+安装/升级：sudo apt install ./muffin-md_0.7.9-1+ibus4_amd64.deb
+启动：应用菜单中的 Muffin Markdown，或 muffin-md 文件.md
+卸载：sudo apt remove muffin-md（用户笔记不在本包内）
+包名、启动器和安装目录与 Cinnamon 窗口管理器 muffin 分离。
 适用：已在 Debian 13 amd64 / GNOME X11 上验证；其他发行版、Wayland 未验证。
 请勿向此私有运行库目录复制其他版本 Qt 的输入法插件。
 
@@ -255,7 +257,7 @@ Qt 动态库及插件采用 LGPLv3，可使用兼容 ABI 的自行构建版本�
         shutil.copy2(Path(__file__), doc / "ibus-position-source/package_linux_deb.py")
         shutil.copy2(REPO / "resources/themes/document-base.css", doc / "document-base.css")
         put(doc / "build-inputs.json", json.dumps({
-            "package_version": VERSION, "application_version": "0.7.9", "qt_version": "6.11.1",
+            "package_name": PACKAGE, "package_version": VERSION, "application_version": "0.7.9", "qt_version": "6.11.1",
             "strategy": "upstream-binary-repack+compiled-private-ibus-position-adapter+checked-base-css-data-patch; editor not rebuilt",
             "highlight_base_css_patch": highlight_patch,
             "document_base_css_sha256": digest(REPO / "resources/themes/document-base.css"),
@@ -267,12 +269,12 @@ Qt 动态库及插件采用 LGPLv3，可使用兼容 ABI 的自行构建版本�
         }, indent=2) + "\n")
         # Mark the private bundled Qt libraries locally so dpkg-shlibdeps does
         # not incorrectly require Debian's ABI-incompatible system Qt packages.
-        put(work / "debian/control", "Source: muffin\nSection: editors\nPriority: optional\nMaintainer: Local Build <local@localhost>\nStandards-Version: 4.7.0\n\nPackage: muffin\nArchitecture: amd64\nDescription: Muffin Markdown editor\n")
+        put(work / "debian/control", f"Source: {PACKAGE}\nSection: editors\nPriority: optional\nMaintainer: Local Build <local@localhost>\nStandards-Version: 4.7.0\n\nPackage: {PACKAGE}\nArchitecture: amd64\nDescription: Muffin Markdown editor\n")
         qt_names = ("Core", "Gui", "Widgets", "Network", "PrintSupport", "Svg", "XcbQpa", "DBus")
-        put(work / "debian/shlibs.local", "".join(f"libQt6{name} 6 muffin\n" for name in qt_names))
+        put(work / "debian/shlibs.local", "".join(f"libQt6{name} 6 {PACKAGE}\n" for name in qt_names))
         (root / "DEBIAN").mkdir()
         binaries = sorted(p for p in app.rglob("*") if is_elf(p))
-        scan = subprocess.run(["dpkg-shlibdeps", "--ignore-missing-info", "-O", "-xmuffin",
+        scan = subprocess.run(["dpkg-shlibdeps", "--ignore-missing-info", "-O", f"-x{PACKAGE}",
                                f"-l{app}", *(f"-e{p}" for p in binaries)],
                               cwd=work, env=env, text=True, capture_output=True, check=True)
         dependencies = scan.stdout.strip().removeprefix("shlibs:Depends=")
@@ -284,7 +286,7 @@ Qt 动态库及插件采用 LGPLv3，可使用兼容 ABI 的自行构建版本�
             if "not found" in check.stdout or "undefined symbol:" in check.stdout or "undefined symbol:" in check.stderr:
                 raise ValueError(f"Unresolved runtime ABI for {binary}: {check.stdout}{check.stderr}")
         installed_kib = sum(p.stat().st_size for p in root.rglob("*") if p.is_file() and not p.is_symlink()) // 1024 + 1
-        put(root / "DEBIAN/control", f"""Package: muffin
+        put(root / "DEBIAN/control", f"""Package: {PACKAGE}
 Version: {VERSION}
 Section: editors
 Priority: optional
